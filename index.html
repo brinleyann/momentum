@@ -40,44 +40,44 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
     </a>
   </footer>
 
-  <script src="script.js"></script>
-    <script>
-async function showSignup() {
-  const email = prompt("Enter your email:");
-  const password = prompt("Create a password:");
+<header style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 24px;
+  background:rgba(255,255,255,0.7);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(0,0,0,0.05);
+">
 
-  if (!email || !password) return;
+  <div style="font-weight:600; font-size:18px;">
+    Momentum
+  </div>
 
-  const { data, error } = await supabase.auth.signUp({
-    email: email,
-    password: password
-  });
+  <div>
+    <button onclick="showSignup()" style="
+      margin-right:8px;
+      padding:8px 14px;
+      border-radius:14px;
+      border:none;
+      background:#e6f0ff;
+      cursor:pointer;
+    ">
+      Sign up
+    </button>
 
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("Welcome to Momentum 🌱");
-  }
-}
+    <button onclick="showLogin()" style="
+      padding:8px 14px;
+      border-radius:14px;
+      border:none;
+      background:#f3e6ff;
+      cursor:pointer;
+    ">
+      Log in
+    </button>
+  </div>
 
-async function showLogin() {
-  const email = prompt("Email:");
-  const password = prompt("Password:");
-
-  if (!email || !password) return;
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password
-  });
-
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("Welcome back 🌿");
-  }
-}
-</script>
+</header>
 
 </body>
 </html>
