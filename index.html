@@ -1,302 +1,298 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Momentum</title>
+  <title>Momentum</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: system-ui;
+      background: #f8fbff;
+      padding: 30px;
+      color: #2d3748;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    button {
+      background: #7dd3fc;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
 
-<style>
+    input {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-    background: #f1f5f9;
-    color: #0f172a;
-    margin: 0;
-}
+    .board {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      cursor: pointer;
+    }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 40px;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.logo {
-    font-size: 20px;
-    font-weight: 600;
-}
-
-.auth-buttons button {
-    margin-left: 10px;
-}
-
-.container {
-    max-width: 600px;
-    margin: 60px auto;
-    text-align: center;
-}
-
-h1 {
-    font-size: 42px;
-    margin-bottom: 10px;
-}
-
-.subtitle {
-    color: #64748b;
-    margin-bottom: 30px;
-}
-
-button {
-    background: #6366f1;
-    color: white;
-    border: none;
-    padding: 14px 22px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-}
-
-button:hover {
-    opacity: .9;
-}
-
-.streak {
-    margin-top: 20px;
-    font-size: 18px;
-}
-
-.leaderboard {
-    margin-top: 50px;
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-.leaderboard h2 {
-    margin-bottom: 15px;
-}
-
-.player {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.player:last-child {
-    border-bottom: none;
-}
-
-.rank {
-    font-weight: bold;
-}
-
-.footer {
-    text-align: center;
-    margin-top: 40px;
-    color: #94a3b8;
-}
-
-</style>
+    .leader {
+      background: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
 </head>
-
 <body>
-
-<div class="header">
-<div class="logo">Momentum</div>
-
-<div class="auth-buttons">
-<button onclick="signUp()">Sign up</button>
-<button onclick="logIn()">Log in</button>
-</div>
-</div>
-
-<div class="container">
 
 <h1>Momentum</h1>
 
-<div class="subtitle">
-Build consistency. Compete. Win.
+<div id="auth">
+  <input id="email" placeholder="email">
+  <input id="password" placeholder="password" type="password">
+  <input id="username" placeholder="username">
+  <button onclick="signUp()">Sign Up</button>
+  <button onclick="signIn()">Sign In</button>
 </div>
 
-<button onclick="checkIn()">I showed up today</button>
+<div id="app" style="display:none">
 
-<div class="streak">
-Current streak: <span id="streakNumber">0</span>
-</div>
+  <h2>Boards</h2>
 
-<div class="leaderboard">
-<h2>Leaderboard</h2>
-<div id="leaderboardList">
-Loading...
-</div>
-</div>
+  <input id="boardName" placeholder="New board name">
+  <button onclick="createBoard()">Create Board</button>
 
-<div class="footer">
-Momentum
-</div>
+  <div id="boards"></div>
+
+  <h2 id="boardTitle"></h2>
+
+  <button onclick="checkIn()">I showed up today</button>
+
+  <div id="leaderboard"></div>
 
 </div>
 
 <script>
 
-// INSERT YOUR SUPABASE INFO
-const SUPABASE_URL = "https://btmncubexcqpuonfxrfe.supabase.co"
-const SUPABASE_KEY = "sb_publishable_iQ_99G3PwZgJ-mAfDaMz2g_ARdC7XfL"
+const SUPABASE_URL = "PASTE_URL_HERE"
+const SUPABASE_KEY = "PASTE_ANON_KEY_HERE"
 
 const supabase = window.supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
+  SUPABASE_URL,
+  SUPABASE_KEY
 )
 
 let user = null
+let profile = null
+let currentBoard = null
 
+checkSession()
 
-async function signUp(){
+async function signUp() {
 
-const email = prompt("Email:")
-const password = prompt("Password:")
-const username = prompt("Choose a username:")
+  const email = document.getElementById("email").value
+  const password = document.getElementById("password").value
+  const username = document.getElementById("username").value
 
-if(!email || !password || !username) return
+  const result = await supabase.auth.signUp({
+    email,
+    password
+  })
 
-const { data, error } = await supabase.auth.signUp({
-email,
-password
-})
+  const authUser = result.data.user
 
-if(error){
-alert(error.message)
-return
+  await supabase.from("profiles").insert({
+    id: authUser.id,
+    username,
+    streak: 0
+  })
+
+  alert("Account created. Now sign in.")
 }
 
-await supabase.from("profiles").insert({
-id: data.user.id,
-username: username,
-streak: 0
-})
+async function signIn() {
 
-alert("Account created!")
+  const email = document.getElementById("email").value
+  const password = document.getElementById("password").value
 
+  await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+
+  location.reload()
 }
 
+async function checkSession() {
 
-async function logIn(){
+  const result = await supabase.auth.getUser()
 
-const email = prompt("Email:")
-const password = prompt("Password:")
+  if (result.data.user) {
 
-const { data, error } = await supabase.auth.signInWithPassword({
-email,
-password
-})
+    user = result.data.user
 
-if(error){
-alert(error.message)
-return
+    const profileResult =
+      await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+
+    profile = profileResult.data
+
+    document.getElementById("auth").style.display = "none"
+    document.getElementById("app").style.display = "block"
+
+    loadBoards()
+  }
 }
 
-user = data.user
+async function createBoard() {
 
-loadStreak()
-loadLeaderboard()
+  const name =
+    document.getElementById("boardName").value
 
+  const result =
+    await supabase
+    .from("boards")
+    .insert({
+      name,
+      creator: profile.id
+    })
+    .select()
+    .single()
+
+  await supabase.from("board_members").insert({
+    board_id: result.data.id,
+    user_id: profile.id
+  })
+
+  await supabase.from("scores").insert({
+    board_id: result.data.id,
+    user_id: profile.id,
+    streak: 0
+  })
+
+  loadBoards()
 }
 
+async function loadBoards() {
 
-async function loadStreak(){
+  const result =
+    await supabase
+    .from("boards")
+    .select("*")
+    .order("created_at", {ascending:false})
 
-const { data } = await supabase
-.from("profiles")
-.select("streak")
-.eq("id", user.id)
-.single()
+  const container =
+    document.getElementById("boards")
 
-if(data){
-document.getElementById("streakNumber").innerText = data.streak
+  container.innerHTML = ""
+
+  result.data.forEach(board => {
+
+    const div =
+      document.createElement("div")
+
+    div.className = "board"
+
+    div.innerText = board.name
+
+    div.onclick =
+      () => openBoard(board)
+
+    container.appendChild(div)
+  })
 }
 
+async function openBoard(board) {
+
+  currentBoard = board
+
+  document.getElementById("boardTitle").innerText =
+    board.name
+
+  loadLeaderboard()
 }
 
+async function checkIn() {
 
-async function checkIn(){
+  if (!currentBoard) {
+    alert("Select a board first")
+    return
+  }
 
-if(!user){
-alert("Log in first")
-return
+  const result =
+    await supabase
+    .from("scores")
+    .select("*")
+    .eq("board_id", currentBoard.id)
+    .eq("user_id", profile.id)
+    .single()
+
+  let streak = result.data.streak
+  let last = result.data.last_check_in
+
+  const today =
+    new Date().toISOString().slice(0,10)
+
+  if (last !== today)
+    streak++
+
+  await supabase
+    .from("scores")
+    .update({
+      streak,
+      last_check_in: today
+    })
+    .eq("id", result.data.id)
+
+  loadLeaderboard()
 }
 
-const { data } = await supabase
-.from("profiles")
-.select("streak")
-.eq("id", user.id)
-.single()
+async function loadLeaderboard() {
 
-let newStreak = (data?.streak || 0) + 1
+  const result =
+    await supabase
+    .from("scores")
+    .select(`
+      streak,
+      profiles(username)
+    `)
+    .eq("board_id", currentBoard.id)
+    .order("streak",{ascending:false})
 
-await supabase
-.from("profiles")
-.update({ streak: newStreak })
-.eq("id", user.id)
+  const container =
+    document.getElementById("leaderboard")
 
-loadStreak()
-loadLeaderboard()
+  container.innerHTML = ""
 
+  result.data.forEach((row,index)=>{
+
+    const div =
+      document.createElement("div")
+
+    div.className = "leader"
+
+    let medal = ""
+
+    if(index===0) medal="🥇"
+    if(index===1) medal="🥈"
+    if(index===2) medal="🥉"
+
+    div.innerHTML =
+      `${index+1}. ${medal}
+       ${row.profiles.username}
+       <b>${row.streak}</b>`
+
+    container.appendChild(div)
+  })
 }
-
-
-async function loadLeaderboard(){
-
-const { data } = await supabase
-.from("profiles")
-.select("username, streak")
-.order("streak", { ascending: false })
-.limit(10)
-
-let html = ""
-
-for(let i=0;i<data.length;i++){
-
-let medal = ""
-
-if(i==0) medal = "🥇"
-else if(i==1) medal = "🥈"
-else if(i==2) medal = "🥉"
-else medal = i+1
-
-html += `
-<div class="player">
-<div class="rank">${medal} ${data[i].username}</div>
-<div>${data[i].streak}</div>
-</div>
-`
-
-}
-
-
-document.getElementById("leaderboardList").innerHTML = html
-
-}
-
-
-// auto login
-supabase.auth.getUser().then(({data})=>{
-
-if(data.user){
-user = data.user
-loadStreak()
-}
-
-loadLeaderboard()
-
-})
 
 </script>
 
 </body>
 </html>
+
