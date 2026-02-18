@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta charset="UTF-8">
   <title>Momentum</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<script>
+const supabaseUrl = "https://joinmomentum.live";
+const supabaseKey = "sb_publishable_iQ_99G3PwZgJ-mAfDaMz2g_ARdC7XfL";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+</script>
+
+  <body>
 
   <div class="container">
     <h1>Momentum</h1>
