@@ -15,6 +15,15 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
   <body>
+<div style="position:absolute; top:20px; right:20px;">
+  <button onclick="showSignup()" style="margin-right:8px; padding:6px 12px; border-radius:12px; border:none; background:#e6f0ff; cursor:pointer;">
+    Sign up
+  </button>
+
+  <button onclick="showLogin()" style="padding:6px 12px; border-radius:12px; border:none; background:#f3e6ff; cursor:pointer;">
+    Log in
+  </button>
+</div>
 
   <div class="container">
     <h1>Momentum</h1>
@@ -32,5 +41,43 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
   </footer>
 
   <script src="script.js"></script>
+    <script>
+async function showSignup() {
+  const email = prompt("Enter your email:");
+  const password = prompt("Create a password:");
+
+  if (!email || !password) return;
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Welcome to Momentum 🌱");
+  }
+}
+
+async function showLogin() {
+  const email = prompt("Email:");
+  const password = prompt("Password:");
+
+  if (!email || !password) return;
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Welcome back 🌿");
+  }
+}
+</script>
+
 </body>
 </html>
