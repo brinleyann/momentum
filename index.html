@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Momentum</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,7 +11,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-    background: #f8fafc;
+    background: #f1f5f9;
     color: #0f172a;
     margin: 0;
 }
@@ -22,6 +21,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 20px 40px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .logo {
@@ -34,8 +35,8 @@ body {
 }
 
 .container {
-    max-width: 500px;
-    margin: 80px auto;
+    max-width: 600px;
+    margin: 60px auto;
     text-align: center;
 }
 
@@ -46,7 +47,7 @@ h1 {
 
 .subtitle {
     color: #64748b;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 button {
@@ -64,25 +65,41 @@ button:hover {
 }
 
 .streak {
-    margin-top: 25px;
+    margin-top: 20px;
     font-size: 18px;
 }
 
+.leaderboard {
+    margin-top: 50px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.leaderboard h2 {
+    margin-bottom: 15px;
+}
+
+.player {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.player:last-child {
+    border-bottom: none;
+}
+
+.rank {
+    font-weight: bold;
+}
+
 .footer {
-    position: fixed;
-    bottom: 10px;
-    width: 100%;
     text-align: center;
-    font-size: 14px;
-}
-
-.footer a {
+    margin-top: 40px;
     color: #94a3b8;
-    text-decoration: none;
-}
-
-.footer a:hover {
-    color: #64748b;
 }
 
 </style>
@@ -91,48 +108,44 @@ button:hover {
 <body>
 
 <div class="header">
+<div class="logo">Momentum</div>
 
-<div class="logo">
-Momentum
-</div>
-
-<div class="auth-buttons" id="authButtons">
+<div class="auth-buttons">
 <button onclick="signUp()">Sign up</button>
 <button onclick="logIn()">Log in</button>
 </div>
-
 </div>
-
 
 <div class="container">
 
 <h1>Momentum</h1>
 
 <div class="subtitle">
-Build consistency. One day at a time.
+Build consistency. Compete. Win.
 </div>
 
-<button onclick="checkIn()" id="checkInBtn">
-I showed up today
-</button>
+<button onclick="checkIn()">I showed up today</button>
 
 <div class="streak">
 Current streak: <span id="streakNumber">0</span>
 </div>
 
+<div class="leaderboard">
+<h2>Leaderboard</h2>
+<div id="leaderboardList">
+Loading...
 </div>
-
+</div>
 
 <div class="footer">
-<a href="https://buymeacoffee.com/YOURNAME" target="_blank">
-Buy me a coffee
-</a>
+Momentum
 </div>
 
+</div>
 
 <script>
 
-// PASTE YOUR SUPABASE INFO HERE
+// INSERT YOUR SUPABASE INFO
 const SUPABASE_URL = "https://btmncubexcqpuonfxrfe.supabase.co"
 const SUPABASE_KEY = "sb_publishable_iQ_99G3PwZgJ-mAfDaMz2g_ARdC7XfL"
 
@@ -148,19 +161,27 @@ async function signUp(){
 
 const email = prompt("Email:")
 const password = prompt("Password:")
+const username = prompt("Choose a username:")
 
-if(!email || !password) return
+if(!email || !password || !username) return
 
-const { error } = await supabase.auth.signUp({
+const { data, error } = await supabase.auth.signUp({
 email,
 password
 })
 
 if(error){
 alert(error.message)
-}else{
-alert("Check your email to confirm.")
+return
 }
+
+await supabase.from("profiles").insert({
+id: data.user.id,
+username: username,
+streak: 0
+})
+
+alert("Account created!")
 
 }
 
@@ -170,8 +191,6 @@ async function logIn(){
 const email = prompt("Email:")
 const password = prompt("Password:")
 
-if(!email || !password) return
-
 const { data, error } = await supabase.auth.signInWithPassword({
 email,
 password
@@ -179,10 +198,13 @@ password
 
 if(error){
 alert(error.message)
-}else{
-user = data.user
-loadStreak()
+return
 }
+
+user = data.user
+
+loadStreak()
+loadLeaderboard()
 
 }
 
@@ -196,8 +218,7 @@ const { data } = await supabase
 .single()
 
 if(data){
-document.getElementById("streakNumber").innerText =
-data.streak
+document.getElementById("streakNumber").innerText = data.streak
 }
 
 }
@@ -220,23 +241,59 @@ let newStreak = (data?.streak || 0) + 1
 
 await supabase
 .from("profiles")
-.update({
-streak: newStreak
-})
+.update({ streak: newStreak })
 .eq("id", user.id)
 
-document.getElementById("streakNumber").innerText =
-newStreak
+loadStreak()
+loadLeaderboard()
+
+}
+
+
+async function loadLeaderboard(){
+
+const { data } = await supabase
+.from("profiles")
+.select("username, streak")
+.order("streak", { ascending: false })
+.limit(10)
+
+let html = ""
+
+for(let i=0;i<data.length;i++){
+
+let medal = ""
+
+if(i==0) medal = "🥇"
+else if(i==1) medal = "🥈"
+else if(i==2) medal = "🥉"
+else medal = i+1
+
+html += `
+<div class="player">
+<div class="rank">${medal} ${data[i].username}</div>
+<div>${data[i].streak}</div>
+</div>
+`
+
+}
+
+
+document.getElementById("leaderboardList").innerHTML = html
 
 }
 
 
 // auto login
 supabase.auth.getUser().then(({data})=>{
+
 if(data.user){
 user = data.user
 loadStreak()
 }
+
+loadLeaderboard()
+
 })
 
 </script>
